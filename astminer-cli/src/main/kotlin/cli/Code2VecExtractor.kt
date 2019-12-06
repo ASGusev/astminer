@@ -11,6 +11,8 @@ import astminer.parse.cpp.FuzzyCppParser
 import astminer.parse.cpp.FuzzyMethodSplitter
 import astminer.parse.java.GumTreeJavaParser
 import astminer.parse.java.GumTreeMethodSplitter
+import astminer.parse.ktpsi.KtPSILoader
+import astminer.parse.ktpsi.KtPSIMethodSplitter
 import astminer.paths.Code2VecPathStorage
 import astminer.paths.PathMiner
 import astminer.paths.PathRetrievalSettings
@@ -119,6 +121,11 @@ class Code2VecExtractor : CliktCommand() {
                     val parser = PythonParser()
                     val roots = parser.parseWithExtension(File(projectRoot), extension)
                     extractFromMethods(roots, PythonMethodSplitter(), miner, storage)
+                }
+                "kt" -> {
+                    val loader = KtPSILoader()
+                    val roots = loader.parseWithExtension(File(projectRoot), "txt")
+                    extractFromMethods(roots, KtPSIMethodSplitter(), miner, storage)
                 }
                 else -> throw UnsupportedOperationException("Unsupported extension $extension")
             }

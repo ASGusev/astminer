@@ -18,8 +18,9 @@ group = "io.github.vovak.astminer"
 version = "0.3"
 
 repositories {
+    mavenLocal()
     mavenCentral()
-    maven(url = "https://dl.bintray.com/egor-bogomolov/astminer/")
+//    maven(url = "https://dl.bintray.com/egor-bogomolov/astminer/")
 }
 
 dependencies {
