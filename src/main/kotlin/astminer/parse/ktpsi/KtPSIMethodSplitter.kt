@@ -18,7 +18,7 @@ class KtPSIMethodSplitter : TreeMethodSplitter<KtPSINode> {
     }
 
     private fun makeMethodNode(methodRoot: KtPSINode): MethodNode<KtPSINode> {
-        val methodNameNode = methodRoot.getChildOfType(TypeLabels.METHOD_IDENTIFIER) as KtPSINode
+        val methodNameNode = methodRoot.getChildOfType(TypeLabels.IDENTIFIER) as KtPSINode
         val methodType = methodRoot.getChildOfType(TypeLabels.METHOD_TYPE) as KtPSINode?
         return MethodNode(methodRoot, methodType, methodNameNode)
     }
@@ -27,7 +27,7 @@ class KtPSIMethodSplitter : TreeMethodSplitter<KtPSINode> {
         var classNode = methodRoot.getParent()
         while (classNode !== null && classNode.getTypeLabel() != TypeLabels.CLASS_DECLARATION)
             classNode = classNode.getParent()
-        val classNameNode = classNode?.getChildOfType(TypeLabels.CLASS_IDENTIFIER)
+        val classNameNode = classNode?.getChildOfType(TypeLabels.IDENTIFIER)
         return ElementNode(classNode, classNameNode as KtPSINode?)
     }
 
@@ -35,7 +35,7 @@ class KtPSIMethodSplitter : TreeMethodSplitter<KtPSINode> {
         val parameterListNode = methodRoot.getChildOfType(TypeLabels.PARAMETERS_LIST)
         val parameterNodes = parameterListNode?.getChildrenOfType(TypeLabels.PARAMETER) ?: listOf()
         return parameterNodes.map {
-            val paraeterNameNode = it.getChildOfType(TypeLabels.PARAMETER_IDENTIFIER) as KtPSINode?
+            val paraeterNameNode = it.getChildOfType(TypeLabels.IDENTIFIER) as KtPSINode?
             val parameterTypeNode = it.getChildOfType(TypeLabels.PARAMETER_TYPE) as KtPSINode?
             ParameterNode(it as KtPSINode, parameterTypeNode, paraeterNameNode)
         }

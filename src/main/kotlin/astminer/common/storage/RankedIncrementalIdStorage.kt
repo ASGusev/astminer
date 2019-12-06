@@ -50,4 +50,12 @@ class RankedIncrementalIdStorage<T> {
         }
         idCountRanks = idRankMap
     }
+
+    fun itemPerId() : Map<Long, T> {
+        val idToItem = HashMap<Long, T>()
+        for ((item, id) in idPerItem) {
+            idToItem[id] = item
+        }
+        return idToItem
+    }
 }

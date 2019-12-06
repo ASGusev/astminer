@@ -11,12 +11,8 @@ import astminer.parse.cpp.FuzzyCppParser
 import astminer.parse.cpp.FuzzyMethodSplitter
 import astminer.parse.java.GumTreeJavaParser
 import astminer.parse.java.GumTreeMethodSplitter
-import astminer.parse.ktpsi.KtPSILoader
-import astminer.parse.ktpsi.KtPSIMethodSplitter
-import astminer.paths.Code2VecPathStorage
-import astminer.paths.PathMiner
-import astminer.paths.PathRetrievalSettings
-import astminer.paths.toPathContext
+import astminer.parse.ktpsi.*
+import astminer.paths.*
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
@@ -73,27 +69,35 @@ class Code2VecExtractor : CliktCommand() {
         roots: List<ParseResult<T>>,
         methodSplitter: TreeMethodSplitter<T>,
         miner: PathMiner,
-        storage: Code2VecPathStorage
+        storage: Code2VecFormatPathStorage,
+        getFullMethodName: ((ParseResult<T>, MethodInfo<T>) -> String)? = null
     ) {
-        val methods = roots.mapNotNull {
-            it.root
-        }.flatMap {
-            methodSplitter.splitIntoMethods(it)
-        }
-        methods.forEach { methodInfo ->
-            val methodNameNode = methodInfo.method.nameNode ?: return@forEach
-            val methodRoot = methodInfo.method.root
-            val label = splitToSubtokens(methodNameNode.getToken()).joinToString("|")
-            methodRoot.preOrder().forEach { it.setNormalizedToken() }
-            methodNameNode.setNormalizedToken("METHOD_NAME")
+        for (parsedFile in roots) {
+            if (parsedFile.root != null) {
+                val methods = methodSplitter.splitIntoMethods(parsedFile.root!!)
+                for (method in methods) {
+                    val methodNameNode = method.method.nameNode ?: break
+                    val methodRoot = method.method.root
+                    val label = splitToSubtokens(methodNameNode.getToken()).joinToString("|")
+                    methodRoot.preOrder().forEach { it.setNormalizedToken() }
+                    methodNameNode.setNormalizedToken("METHOD_NAME")
 
-            // Retrieve paths from every node individually
-            val paths = miner.retrievePaths(methodRoot).take(maxPathContexts)
-            storage.store(LabeledPathContexts(label, paths.map {
-                toPathContext(it) { node ->
-                    node.getNormalizedToken()
+
+                    // Retrieve paths from every node individually
+                    val paths = miner.retrievePaths(methodRoot).take(maxPathContexts)
+                    val labeledPathContexts = LabeledPathContexts(label, paths.map {
+                        toPathContext(it) { node ->
+                            node.getNormalizedToken()
+                        }
+                    })
+                    if (getFullMethodName != null) {
+                        val fullMethodName = getFullMethodName(parsedFile, method)
+                        storage.store(labeledPathContexts, fullMethodName)
+                    } else {
+                        storage.store(labeledPathContexts)
+                    }
                 }
-            }))
+            }
         }
     }
 
@@ -104,7 +108,7 @@ class Code2VecExtractor : CliktCommand() {
 
             val outputDirForLanguage = outputDir.resolve(extension)
             outputDirForLanguage.mkdir()
-            val storage = Code2VecPathStorage(outputDirForLanguage.path)
+            val storage = Code2VecFormatPathStorage(outputDirForLanguage.path)
 
             when (extension) {
                 "c", "cpp" -> {
@@ -125,7 +129,9 @@ class Code2VecExtractor : CliktCommand() {
                 "kt" -> {
                     val loader = KtPSILoader()
                     val roots = loader.parseWithExtension(File(projectRoot), "txt")
-                    extractFromMethods(roots, KtPSIMethodSplitter(), miner, storage)
+                    val fullMethodNameRestorer = KtFullMethodPathExtractor(projectRoot)
+                    extractFromMethods(roots, KtPSIMethodSplitter(), miner, storage,
+                            fullMethodNameRestorer::getFullMethodPath)
                 }
                 else -> throw UnsupportedOperationException("Unsupported extension $extension")
             }

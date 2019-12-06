@@ -2,9 +2,13 @@ package astminer.parse.ktpsi
 
 import astminer.common.model.Node
 
-class KtPSINode(private val parent: KtPSINode?, private val typeLabel: String, private val token: String) : Node {
-    private val childrenList = mutableListOf<KtPSINode>()
-    private val metadata = mutableMapOf<String, Any>()
+class KtPSINode(
+        private val parent: KtPSINode?,
+        private val typeLabel: String,
+        private val token: String,
+        private val leaf: Boolean) : Node {
+    private val childrenList = ArrayList<KtPSINode>()
+    private val metadata = HashMap<String, Any>()
 
     override fun getTypeLabel() = typeLabel
 
@@ -14,7 +18,7 @@ class KtPSINode(private val parent: KtPSINode?, private val typeLabel: String, p
 
     override fun getToken() = token
 
-    override fun isLeaf() = childrenList.isEmpty()
+    override fun isLeaf() = leaf
 
     override fun getMetadata(key: String): Any? = metadata[key]
 

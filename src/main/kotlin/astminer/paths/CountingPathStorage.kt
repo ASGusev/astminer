@@ -7,12 +7,12 @@ import java.io.File
 const val DEFAULT_FRAGMENTS_PER_BATCH = 100L
 
 abstract class CountingPathStorage<LabelType>(
-        private val outputFolderPath: String,
+        protected val outputFolderPath: String,
         val batchMode: Boolean = true,
         val fragmentsPerBatch: Long = DEFAULT_FRAGMENTS_PER_BATCH) : PathStorage<LabelType> {
 
     private var contextsFileIndex = 0
-    private var currentFragmentsCount = 0
+    protected var currentFragmentsCount = 0
 
     protected val tokensMap: RankedIncrementalIdStorage<String> = RankedIncrementalIdStorage()
     protected val orientedNodeTypesMap: RankedIncrementalIdStorage<OrientedNodeType> = RankedIncrementalIdStorage()
@@ -42,7 +42,7 @@ abstract class CountingPathStorage<LabelType>(
         return PathContextId(startTokenId, pathId, endTokenId)
     }
 
-    private fun dumpPathContextsIfNeeded() {
+    protected open fun dumpPathContextsIfNeeded() {
         if (!batchMode || currentFragmentsCount < fragmentsPerBatch) {
             return
         }
