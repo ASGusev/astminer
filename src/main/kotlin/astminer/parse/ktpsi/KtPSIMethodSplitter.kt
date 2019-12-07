@@ -18,7 +18,7 @@ class KtPSIMethodSplitter : TreeMethodSplitter<KtPSINode> {
     }
 
     private fun makeMethodNode(methodRoot: KtPSINode): MethodNode<KtPSINode> {
-        val methodNameNode = methodRoot.getChildOfType(TypeLabels.IDENTIFIER) as KtPSINode
+        val methodNameNode = methodRoot.getChildOfType(TypeLabels.IDENTIFIER) as KtPSINode?
         val methodType = methodRoot.getChildOfType(TypeLabels.METHOD_TYPE) as KtPSINode?
         return MethodNode(methodRoot, methodType, methodNameNode)
     }

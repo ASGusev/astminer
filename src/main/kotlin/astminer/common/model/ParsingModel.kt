@@ -44,6 +44,9 @@ interface Parser<T : Node> {
      */
     fun parse(files: List<File>): List<ParseResult<T>> = files.map { ParseResult(parse(it.inputStream()), it.path) }
 
+    fun parseLazy(files: Sequence<File>): Sequence<ParseResult<T>> =
+            files.map { ParseResult(parse(it.inputStream()), it.path) }
+
     /**
      * Parse all files that pass [filter][filter] in [root folder][projectRoot] and its sub-folders.
      * @param projectRoot root folder containing files to parse
@@ -55,6 +58,11 @@ interface Parser<T : Node> {
         return parse(files)
     }
 
+    fun parseProjectLazy(projectRoot: File, filter: (File) -> Boolean): Sequence<ParseResult<T>> {
+        val files = projectRoot.walkTopDown().filter(filter)
+        return parseLazy(files)
+    }
+
     /**
      * Parse all files with given extension in [root folder][projectRoot] and its sub-folders.
      * @param projectRoot root folder containing files to parse
@@ -62,6 +70,9 @@ interface Parser<T : Node> {
      * @return list of AST roots, one for each parsed file
      */
     fun parseWithExtension(projectRoot: File, extension: String) = parseProject(projectRoot) { it.isFile && it.extension == extension }
+
+    fun parseWithExtensionLazy(projectRoot: File, extension: String) =
+            parseProjectLazy(projectRoot) { it.isFile && it.extension == extension }
 }
 
 data class ParseResult<T : Node>(val root: T?, val filePath: String)

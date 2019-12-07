@@ -1,12 +1,12 @@
 package astminer.paths
 
-import astminer.common.model.LabeledPathContexts
 import astminer.common.storage.*
 import java.io.File
 
-class Code2VecFormatPathStorage(outputFolderPath: String) : CountingPathStorage<String>(outputFolderPath) {
-    private val sourcePathsList = mutableListOf<String>()
-
+class Code2VecFormatPathStorage(outputFolderPath: String,
+                                batchMode: Boolean = true,
+                                fragmentsPerBatch: Long = DEFAULT_FRAGMENTS_PER_BATCH) :
+        CountingPathStorage<String>(outputFolderPath, batchMode, fragmentsPerBatch) {
     override fun dumpPathContexts(file: File, tokensLimit: Long, pathsLimit: Long) {
         val idToToken = tokensMap.itemPerId()
         val idToPath = pathsMap.itemPerId()
@@ -31,18 +31,5 @@ class Code2VecFormatPathStorage(outputFolderPath: String) : CountingPathStorage<
         }
 
         writeLinesToFile(lines, file)
-        File(outputFolderPath, "names.txt").writeText(sourcePathsList.joinToString("\n"))
-    }
-
-    fun store(labeledPathContexts: LabeledPathContexts<String>, sourcePath: String) {
-        sourcePathsList.add(sourcePath)
-        store(labeledPathContexts)
-    }
-
-    override fun dumpPathContextsIfNeeded() {
-        val dump = batchMode && currentFragmentsCount >= fragmentsPerBatch
-        super.dumpPathContextsIfNeeded()
-        if (dump)
-            sourcePathsList.clear()
     }
 }

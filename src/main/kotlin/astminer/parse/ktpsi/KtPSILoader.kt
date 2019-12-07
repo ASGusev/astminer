@@ -49,11 +49,8 @@ class KtPSILoader : Parser<KtPSINode> {
                 if (type in TypeLabels.TO_REMOVE || type.startsWith(TypeLabels.K_DOC_PREF)) {
                     null
                 } else {
-                    if (type !in TypeLabels.TO_KEEP) {
-                        println(type)
-                    }
                     val tokenStart = typeEnd + 3
-                    val tokenEnd = desc.indexOf(')', tokenStart) - 1
+                    val tokenEnd = desc.lastIndexOf(')') - 1
                     val token = desc.substring(tokenStart, tokenEnd)
                     val leaf = type in TypeLabels.LEAF_TYPES
                     KtPSINode(parent, type, token, leaf)
