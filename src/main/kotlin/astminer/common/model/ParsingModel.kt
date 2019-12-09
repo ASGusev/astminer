@@ -45,7 +45,13 @@ interface Parser<T : Node> {
     fun parse(files: List<File>): List<ParseResult<T>> = files.map { ParseResult(parse(it.inputStream()), it.path) }
 
     fun parseLazy(files: Sequence<File>): Sequence<ParseResult<T>> =
-            files.map { ParseResult(parse(it.inputStream()), it.path) }
+            files.map {
+                val inputStream = it.inputStream()
+                val filePath = it.path
+                inputStream.use {
+                    ParseResult(parse(it), filePath)
+                }
+            }
 
     /**
      * Parse all files that pass [filter][filter] in [root folder][projectRoot] and its sub-folders.

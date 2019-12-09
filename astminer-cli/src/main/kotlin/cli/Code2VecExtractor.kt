@@ -25,8 +25,7 @@ import com.github.ajalt.clikt.parameters.types.long
 import java.io.File
 
 
-private const val BATCH_SIZE = 1024L
-//private const val BATCH_SIZE = 16384L
+private const val BATCH_SIZE = 16384L
 
 
 class Code2VecExtractor : CliktCommand() {
