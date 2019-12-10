@@ -16,10 +16,7 @@ import astminer.paths.*
 import cli.path_saving.KtSourceMethodPathSaver
 import cli.path_saving.MethodPathSaver
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
-import com.github.ajalt.clikt.parameters.options.split
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import java.io.File
@@ -71,12 +68,23 @@ class Code2VecExtractor : CliktCommand() {
         help = "Keep only contexts with maxTokens most popular paths."
     ).long().default(Long.MAX_VALUE)
 
+    val loadableFormat: Boolean by option(
+            "--loadableFormat",
+            help= "Produce output in the format readable by code2vec"
+    ).flag()
+
+    val writeStatistics: Boolean by option(
+            "--statistics",
+            help="Write paths statistics (height, width)"
+    ).flag()
+
     private fun <T : Node> extractFromMethods(
         roots: Sequence<ParseResult<T>>,
         methodSplitter: TreeMethodSplitter<T>,
         miner: PathMiner,
-        storage: Code2VecFormatPathStorage,
-        fullPathSaver: MethodPathSaver<T>? = null
+        storage: PathStorage<String>,
+        fullPathSaver: MethodPathSaver<T>? = null,
+        statisticsSaver: StatisticsCollector? = null
     ) {
         roots.forEachIndexed { index, parsedFile ->
             println("Processing file number $index: ${parsedFile.filePath}")
@@ -90,14 +98,16 @@ class Code2VecExtractor : CliktCommand() {
                     methodNameNode.setNormalizedToken("METHOD_NAME")
 
                     // Retrieve paths from every node individually
-                    val paths = miner.retrievePaths(methodRoot).take(maxPathContexts)
-                    val labeledPathContexts = LabeledPathContexts(label, paths.map {
+                    val allRetrievedPaths = miner.retrievePaths(methodRoot)
+                    val selectedPaths = allRetrievedPaths.take(maxPathContexts)
+                    val labeledPathContexts = LabeledPathContexts(label, selectedPaths.map {
                         toPathContext(it) { node ->
                             node.getNormalizedToken()
                         }
                     })
 
                     fullPathSaver?.addPath(parsedFile, method)
+                    statisticsSaver?.addMethodPaths(allRetrievedPaths)
                     storage.store(labeledPathContexts)
                 }
             }
@@ -112,7 +122,11 @@ class Code2VecExtractor : CliktCommand() {
 
             val outputDirForLanguage = outputDir.resolve(extension)
             outputDirForLanguage.mkdir()
-            val storage = Code2VecFormatPathStorage(outputDirForLanguage.path, true, BATCH_SIZE)
+            val storage = if (loadableFormat) {
+                Code2VecFormatPathStorage(outputDirForLanguage.path, true, BATCH_SIZE)
+            } else {
+                Code2VecPathStorage(outputDirForLanguage.path)
+            }
 
             when (extension) {
                 "c", "cpp" -> {
@@ -134,8 +148,10 @@ class Code2VecExtractor : CliktCommand() {
                     val loader = KtPSILoader()
                     val roots = loader.parseWithExtensionLazy(File(projectRoot), "txt")
                     val fullPathSaver = KtSourceMethodPathSaver(outputDirForLanguage.path, projectRoot, BATCH_SIZE)
-                    extractFromMethods(roots, KtPSIMethodSplitter(), miner, storage, fullPathSaver)
+                    val statisticsCollector = if (writeStatistics) StatisticsCollector(outputDirForLanguage.path, BATCH_SIZE) else null
+                    extractFromMethods(roots, KtPSIMethodSplitter(), miner, storage, fullPathSaver, statisticsCollector)
                     fullPathSaver.save()
+                    statisticsCollector?.save()
                 }
                 else -> throw UnsupportedOperationException("Unsupported extension $extension")
             }
