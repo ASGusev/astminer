@@ -73,6 +73,11 @@ class Code2VecExtractor : CliktCommand() {
             help= "Produce output in the format readable by code2vec"
     ).flag()
 
+    val noTokenPathLimits: Boolean by option(
+            "--noTokenPathLimits",
+            help= "Ignore token and path number limits"
+    ).flag()
+
     val writeStatistics: Boolean by option(
             "--statistics",
             help="Write paths statistics (height, width)"
@@ -123,7 +128,11 @@ class Code2VecExtractor : CliktCommand() {
             val outputDirForLanguage = outputDir.resolve(extension)
             outputDirForLanguage.mkdir()
             val storage = if (loadableFormat) {
-                Code2VecFormatPathStorage(outputDirForLanguage.path, true, BATCH_SIZE)
+                if (noTokenPathLimits) {
+                    Code2VecSimplePathStorage(outputDirForLanguage.path, true, BATCH_SIZE)
+                } else {
+                    Code2VecFormatPathStorage(outputDirForLanguage.path, true, BATCH_SIZE)
+                }
             } else {
                 Code2VecPathStorage(outputDirForLanguage.path)
             }
@@ -158,7 +167,11 @@ class Code2VecExtractor : CliktCommand() {
 
             // Save stored data on disk
             // TODO: implement batches for path context extraction
-            storage.save(maxPaths, maxTokens)
+            if (noTokenPathLimits) {
+                storage.save()
+            } else {
+                storage.save(maxPaths, maxTokens)
+            }
         }
     }
 

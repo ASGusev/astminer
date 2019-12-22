@@ -17,28 +17,27 @@ class KtPSILoader : Parser<KtPSINode> {
         val reader = BufferedReader(InputStreamReader(content))
         reader.readLine()
         var blockIndent = -1
-        reader.lines()
-                .forEach {
-                    val (indent, nodeDesc) = extractIndent(it)
-                    if (blockIndent != -1 && indent > blockIndent)
-                        return@forEach
-                    blockIndent = -1
+        reader.lines().forEach {
+            val (indent, nodeDesc) = extractIndent(it)
+            if (blockIndent != -1 && indent > blockIndent)
+                return@forEach
+            blockIndent = -1
 
-                    while (indents.last() >= indent) {
-                        indents.removeAt(indents.lastIndex)
-                        parents.removeAt(parents.lastIndex)
-                    }
-                    val parent = parents.last()
-                    val curNode = makeNode(parent, nodeDesc)
+            while (indents.last() >= indent) {
+                indents.removeAt(indents.lastIndex)
+                parents.removeAt(parents.lastIndex)
+            }
+            val parent = parents.last()
+            val curNode = if (nodeDesc.isNotEmpty()) makeNode(parent, nodeDesc) else null
 
-                    if (curNode != null) {
-                        parent.addChild(curNode)
-                        parents.add(curNode)
-                        indents.add(indent)
-                    } else {
-                        blockIndent = indent
-                    }
-                }
+            if (curNode != null) {
+                parent.addChild(curNode)
+                parents.add(curNode)
+                indents.add(indent)
+            } else {
+                blockIndent = indent
+            }
+        }
         return root
     }
 
@@ -62,15 +61,15 @@ class KtPSILoader : Parser<KtPSINode> {
             desc == TypeLabels.K_DOC -> KtPSINode(parent, TypeLabels.K_DOC, "", false)
             desc == TypeLabels.EMPTY_LIST -> null
             desc.startsWith(TypeLabels.PSI_ERROR_ELEMENT) -> null
-            else -> {
-                throw UnknownTokenException("Unknown node: $desc")
-            }
+            else -> null
         }
 
     private fun extractIndent(line: String): Pair<Int, String> {
         var indent = 0
-        while (line[indent] == ' ')
+        val n = line.length
+        while (indent < n && line[indent] == ' ') {
             ++indent
+        }
         return Pair(indent, line.substring(indent))
     }
 }
